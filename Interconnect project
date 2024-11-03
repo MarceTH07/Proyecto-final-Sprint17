@@ -1,0 +1,45 @@
+#tasa de cancelación de clientes
+
+#Librerías
+import pandas as pd  
+import seaborn
+
+#leer los archivos CSV
+contract_df= pd.read_csv(r'C:\1_Principal\TRIPLETEN\CAP17\final_provider\contract.csv')
+internet_df= pd.read_csv(r'C:\1_Principal\TRIPLETEN\CAP17\final_provider\internet.csv')
+personal_df= pd.read_csv(r'C:\1_Principal\TRIPLETEN\CAP17\final_provider\personal.csv')
+phone_df= pd.read_csv(r'C:\1_Principal\TRIPLETEN\CAP17\final_provider\phone.csv')
+
+#Mostrar la información general de cada archivo
+def explore_data(df, name):
+    print(f"\Exploración de {name}")
+    print("Primeras 5 filas:")
+    print(df.head())
+    print("\nInformación:")
+    print(df.info())
+    print("\nEstadísticas descriptivas:")
+    print(df.describe())
+    print("\nValores nulos:")
+    print(df.isnull().sum())
+
+# Exploración de cada archivo
+explore_data(contract_df, 'Contract')
+explore_data(internet_df, 'Internet')
+explore_data(personal_df, 'Personal')
+explore_data(phone_df, 'Phone')
+
+#Preparar los datos
+
+
+
+#Revisión y manejo de datos nulos
+
+
+#Unificar los archivos 'contract', 'internet', 'personal', y 'phone' mediante el ID de cliente
+
+
+#Normalizar o estandarizar las variables numéricas
+
+
+#Separar el conjunto de datos en conjunto de entrenamiento y prueba.
+
