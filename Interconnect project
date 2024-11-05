@@ -29,17 +29,23 @@ explore_data(personal_df, 'Personal')
 explore_data(phone_df, 'Phone')
 
 #Preparar los datos
-
-
-
 #Revisión y manejo de datos nulos
-
+def handle_missing_values(df):
+    df = df.fillna(df.median(numeric_only=True))  # Rellenar valores nulos con la mediana (para numéricos)
+    df = df.fillna('Unknown')  # Rellenar con 'Unknown' para categóricos
+    return df
 
 #Unificar los archivos 'contract', 'internet', 'personal', y 'phone' mediante el ID de cliente
+df_merged = contract_df.merge(internet_df, on='customerID', how='left')
+df_merged = df_merged.merge(personal_df, on='customerID', how='left')
+df_merged = df_merged.merge(phone_df, on='customerID', how='left')
 
+print(df_merged)
 
 #Normalizar o estandarizar las variables numéricas
-
+numeric_columns = df_merged.select_dtypes(include=['float64', 'int64']).columns
+scaler = StandardScaler()
+df_merged[numeric_columns] = scaler.fit_transform(df_merged[numeric_columns])
 
 #Separar el conjunto de datos en conjunto de entrenamiento y prueba.
 
