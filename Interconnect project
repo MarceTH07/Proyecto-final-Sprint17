@@ -310,3 +310,5 @@ plt.show()
 results_df = pd.DataFrame(results)
 print("\nResultados Comparativos de Modelos:")
 print(results_df.sort_values(by='ROC-AUC', ascending=False))
+
+# TODO: Guarda todos los outputs importantes en tu disco duro. Por ejemplo, el modelo entrenado, imágenes importantes
