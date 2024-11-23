@@ -1,51 +1,312 @@
 #tasa de cancelación de clientes
 
-#Librerías
-import pandas as pd  
-import seaborn
+# Carga de librerías
+import pandas as pd        
+import numpy as np        
+import matplotlib.pyplot as plt  
+import seaborn as sns 
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import (accuracy_score, confusion_matrix, classification_report, 
+                             precision_score, recall_score, f1_score, roc_auc_score, roc_curve)
+from sklearn.model_selection import StratifiedKFold
+from sklearn.utils import resample
 
+# Importación y exportación de Datos
 #leer los archivos CSV
-contract_df= pd.read_csv(r'C:\1_Principal\TRIPLETEN\CAP17\final_provider\contract.csv')
-internet_df= pd.read_csv(r'C:\1_Principal\TRIPLETEN\CAP17\final_provider\internet.csv')
-personal_df= pd.read_csv(r'C:\1_Principal\TRIPLETEN\CAP17\final_provider\personal.csv')
-phone_df= pd.read_csv(r'C:\1_Principal\TRIPLETEN\CAP17\final_provider\phone.csv')
+contract_df= pd.read_csv('/datasets/final_provider/contract.csv')
+internet_df= pd.read_csv('/datasets/final_provider/internet.csv')
+personal_df= pd.read_csv('/datasets/final_provider/personal.csv')
+phone_df= pd.read_csv('/datasets/final_provider/phone.csv')
 
-#Mostrar la información general de cada archivo
-def explore_data(df, name):
-    print(f"\Exploración de {name}")
-    print("Primeras 5 filas:")
-    print(df.head())
-    print("\nInformación:")
-    print(df.info())
-    print("\nEstadísticas descriptivas:")
-    print(df.describe())
-    print("\nValores nulos:")
-    print(df.isnull().sum())
+#Muestreo de la información general de cada archivo
+# Exploración de 'contract'
+print('Ejemplo de contenido en: contract.csv')
+print (contract_df.head())
+print()
+print('Información general de: contract.csv')
+contract_df.info()
+print('Descripción del contenido de: contract.csv')
+contract_df.describe()
 
-# Exploración de cada archivo
-explore_data(contract_df, 'Contract')
-explore_data(internet_df, 'Internet')
-explore_data(personal_df, 'Personal')
-explore_data(phone_df, 'Phone')
+# Exploración de 'internet'
+print('Ejemplo de contenido en: internet.csv')
+print (internet_df.head())
+print()
+print('Información general de: internet.csv')
+internet_df.info()
+print()
+print('Descripción del contenido de: internet.csv')
+internet_df.describe()
 
-#Preparar los datos
-#Revisión y manejo de datos nulos
-def handle_missing_values(df):
-    df = df.fillna(df.median(numeric_only=True))  # Rellenar valores nulos con la mediana (para numéricos)
-    df = df.fillna('Unknown')  # Rellenar con 'Unknown' para categóricos
-    return df
+# Exploración de 'personal'
+print('Ejemplo de contenido en: personal.csv')
+print (personal_df.head())
+print()
+print('Información general de: personal.csv')
+personal_df.info()
+print()
+print('Descripción del contenido de: personal.csv')
+personal_df.describe()
 
-#Unificar los archivos 'contract', 'internet', 'personal', y 'phone' mediante el ID de cliente
+# Exploración de 'phone'
+print('Ejemplo de contenido en: phone.csv')
+print (phone_df.head())
+print()
+print('Información general de: phone.csv')
+phone_df.info()
+print()
+print('Descripción del contenido de: phone.csv')
+phone_df.describe()
+
+#EDA
+# Identificación de variables numéricas
+numeric_columns = contract_df.select_dtypes(include=['float64', 'int64']).columns
+
+# Histogramas para variables numéricas
+for col in numeric_columns:
+    plt.figure(figsize=(8, 4))
+    sns.histplot(contract_df[col], kde=True, bins=30, color='blue')
+    plt.title(f'Distribución de {col}')
+    plt.xlabel(col)
+    plt.ylabel('Frecuencia')
+    plt.show()
+
+# Identificación de variables categóricas
+categorical_columns = contract_df.select_dtypes(include=['object']).columns
+
+# Gráficos de barras para variables categóricas
+for col in categorical_columns:
+    plt.figure(figsize=(8, 4))
+    sns.countplot(data=contract_df, x=col, palette='Set2', order=contract_df[col].value_counts().index)
+    plt.title(f'Frecuencia de categorías en {col}')
+    plt.xticks(rotation=45)
+    plt.ylabel('Frecuencia')
+    plt.show()
+
+#Identificación de columnas con valores nulos
+def check_missing_values(df):
+    missing_data = df.isnull().sum()
+    missing_percentage = (missing_data / len(df)) * 100
+    missing_summary = pd.DataFrame({
+        'Missing Values': missing_data,
+        'Percentage': missing_percentage
+    })
+    return missing_summary[missing_summary['Missing Values'] > 0].sort_values(by='Missing Values', ascending=False)
+
+# Función para cada DataFrame
+print("Valores nulos en contract_df:")
+print(check_missing_values(contract_df))
+print("\nValores nulos en internet_df:")
+print(check_missing_values(internet_df))
+print("\nValores nulos en personal_df:")
+print(check_missing_values(personal_df))
+print("\nValores nulos en phone_df:")
+print(check_missing_values(phone_df))
+
+# Revisión de valores únicos en TotalCharges
+print("Valores únicos en TotalCharges:")
+print(contract_df['TotalCharges'].unique())
+
+# Verificación de duplicados
+print("Duplicados en contract_df:", contract_df.duplicated().sum())
+print("Duplicados en internet_df:", internet_df.duplicated().sum())
+print("Duplicados en personal_df:", personal_df.duplicated().sum())
+print("Duplicados en phone_df:", phone_df.duplicated().sum())
+
+# Unificación de conjuntos de datos (Usando 'customerID')
 df_merged = contract_df.merge(internet_df, on='customerID', how='left')
 df_merged = df_merged.merge(personal_df, on='customerID', how='left')
 df_merged = df_merged.merge(phone_df, on='customerID', how='left')
 
 print(df_merged)
 
-#Normalizar o estandarizar las variables numéricas
-numeric_columns = df_merged.select_dtypes(include=['float64', 'int64']).columns
-scaler = StandardScaler()
-df_merged[numeric_columns] = scaler.fit_transform(df_merged[numeric_columns])
+# Creación de la columna 'Churn' basada en los valores de 'EndDate'
+df_merged['Churn'] = df_merged['EndDate'].apply(lambda x: 0 if x == 'No' else 1)
 
-#Separar el conjunto de datos en conjunto de entrenamiento y prueba.
+# Verificación de resultados
+print(df_merged[['EndDate', 'Churn']].head())
 
+# Conversión de columnas de fecha al tipo datetime
+date_columns = ['BeginDate', 'EndDate']  
+for col in date_columns:
+    if col in df_merged.columns:
+        df_merged[col] = pd.to_datetime(df_merged[col], errors='coerce')
+
+# Verificación de la conversión
+print(df_merged[date_columns].info())
+
+# Calculo de duración del contrato (en días)
+df_merged['ContractDuration'] = (df_merged['EndDate'] - df_merged['BeginDate']).dt.days
+
+# Extracción de características adicionales
+df_merged['BeginYear'] = df_merged['BeginDate'].dt.year
+df_merged['BeginMonth'] = df_merged['BeginDate'].dt.month
+
+print(df_merged)
+
+# Visualización de Boxplot para variables numéricas frente a 'Churn'
+for col in ['MonthlyCharges', 'ContractDuration']:
+    plt.figure(figsize=(8, 4))
+    sns.boxplot(data=df_merged, x='Churn', y=col, palette='Set2')
+    plt.title(f'{col} según la variable Churn')
+    plt.show()
+
+# Eliminación de columnas de fecha originales si no son necesarias
+df_merged = df_merged.drop(columns=date_columns, errors='ignore')
+
+# Verificación de las primeras filas del DataFrame
+print(df_merged.head())
+
+print(df_merged[['MonthlyCharges', 'SeniorCitizen', 'Churn', 'ContractDuration', 'BeginYear', 'BeginMonth']].info())
+print(df_merged[['MonthlyCharges', 'SeniorCitizen', 'Churn', 'ContractDuration', 'BeginYear', 'BeginMonth']].head())
+
+# Conversión a numérico
+df_merged['Churn'] = pd.to_numeric(df_merged['Churn'], errors='coerce')
+df_merged['MonthlyCharges'] = pd.to_numeric(df_merged['MonthlyCharges'], errors='coerce')
+df_merged['SeniorCitizen'] = pd.to_numeric(df_merged['SeniorCitizen'], errors='coerce')
+df_merged['ContractDuration'] = pd.to_numeric(df_merged['ContractDuration'], errors='coerce')
+df_merged['BeginYear'] = pd.to_numeric(df_merged['BeginYear'], errors='coerce')
+df_merged['BeginMonth'] = pd.to_numeric(df_merged['BeginMonth'], errors='coerce')
+
+# Selección de características (variables relevantes)
+X = df_merged[['MonthlyCharges', 'SeniorCitizen', 'BeginYear', 'BeginMonth']]
+y = df_merged['Churn']
+
+# Eliminación de filas con valores nulos en X y y
+X = X.dropna()
+y = y[X.index]  # Asegurar que 'y' tenga el mismo tamaño que X
+
+# Revisión de la distribución inicial
+print("Distribución inicial en 'Churn':")
+print(df_merged['Churn'].value_counts())
+# Separación de las clases
+majority_class = df_merged[df_merged['Churn'] == 0]
+minority_class = df_merged[df_merged['Churn'] == 1]
+
+# Submuestreao de la clase mayoritaria
+majority_downsampled = resample(majority_class,
+                                replace=False,    # Evitar duplicados
+                                n_samples=len(minority_class),  # Igualar la clase minoritaria
+                                random_state=42)  # Asegurar reproducibilidad
+
+# Combinación de ambas clases
+df_balanced = pd.concat([majority_downsampled, minority_class])
+
+# Confirmación del balance
+print("\nDistribución de clases después del balanceo:")
+print(df_balanced['Churn'].value_counts())
+
+# Verificación del balance
+sns.countplot(data=df_balanced, x='Churn', palette='Set2')
+plt.title('Distribución balanceada de Churn después de Submuestreo')
+plt.show()
+
+correlation_with_churn = df_merged[['MonthlyCharges', 'SeniorCitizen', 'Churn', 'BeginYear', 'BeginMonth']].corr()['Churn']
+print("Características más correlacionadas con 'Churn':")
+print(correlation_with_churn)
+
+print(df_merged[['MonthlyCharges', 'SeniorCitizen', 'Churn', 'BeginYear', 'BeginMonth']].isnull().sum())
+
+# Calculo de la matriz de correlación para variables numéricas
+correlation_matrix = df_merged.corr()
+
+# Mostrar las características con mayor correlación con el objetivo ('Churn')
+target_correlation = correlation_matrix['Churn'].sort_values(ascending=False)
+print("Características más correlacionadas con 'Churn':\n", target_correlation)
+
+# Visualización de la matriz de correlación
+plt.figure(figsize=(10, 8))
+sns.heatmap(correlation_matrix, annot=True, fmt=".2f", cmap="coolwarm")
+plt.title("Matriz de correlación")
+plt.show()
+
+# Variables predictoras (X) y objetivo (y) después del balance
+X_balanced = df_balanced[['MonthlyCharges', 'SeniorCitizen', 'BeginYear', 'BeginMonth']]
+y_balanced = df_balanced['Churn']
+
+# Limpieza de datos: eliminar filas con valores nulos o infinitos
+X_balanced = X_balanced.replace([np.inf, -np.inf], np.nan).dropna()
+y_balanced = y_balanced[X_balanced.index]  # Asegurarnos de que 'y' coincida con 'X'
+
+# Volver a verificar el balance en 'y_balanced'
+print("\nDistribución de clases en y_balanced antes de la división:")
+print(y_balanced.value_counts())
+
+
+# División en entrenamiento y prueba asegurando balance
+X_train, X_test, y_train, y_test = train_test_split(
+    X_balanced, y_balanced, 
+    test_size=0.3, 
+    random_state=42, 
+    stratify=y_balanced
+)
+
+# Verificación del balance después de la división
+print("\nDistribución de clases en y_train:")
+print(y_train.value_counts())
+print("\nDistribución de clases en y_test:")
+print(y_test.value_counts())
+
+# Aseguramiento de que ambas clases estén presentes
+if len(y_train.unique()) < 2 or len(y_test.unique()) < 2:
+    raise ValueError("Una de las divisiones no contiene suficientes clases. Revisa el balance de datos.")
+
+
+# Definición de los modelos
+models = [
+    ('Logistic Regression', LogisticRegression(max_iter=1000, random_state=42)),
+    ('Random Forest', RandomForestClassifier(random_state=42)),
+    ('Decision Tree', DecisionTreeClassifier(random_state=42))
+]
+
+# Almacenamiento de los resultados de evaluación
+results = []
+
+# Entrenamiento y evaluación de cada modelo
+for name, model in models:
+    # Entrenar el modelo
+    model.fit(X_train, y_train)
+    
+    # Predicciones y probabilidades
+    y_pred = model.predict(X_test)
+    y_proba = model.predict_proba(X_test)[:, 1]
+    
+    # Evaluación de métricas
+    accuracy = model.score(X_test, y_test)
+    auc = roc_auc_score(y_test, y_proba)
+    cross_val = cross_val_score(model, X_train, y_train, cv=5, scoring='roc_auc').mean()
+    
+    results.append({
+        'Model': name,
+        'Accuracy': accuracy,
+        'ROC-AUC': auc,
+        'Cross-Validation AUC': cross_val
+    })
+    
+    # Reporte detallado
+    print(f"\n{name}")
+    print("Classification Report:")
+    print(classification_report(y_test, y_pred))
+    print("Confusion Matrix:")
+    print(confusion_matrix(y_test, y_pred))
+    
+    # Graficación de la curva ROC
+    fpr, tpr, thresholds = roc_curve(y_test, y_proba)
+    plt.plot(fpr, tpr, label=f"{name} (AUC = {auc:.2f})")
+
+# Muestreo de todas las curvas ROC
+plt.plot([0, 1], [0, 1], 'k--', label="Random Guess")
+plt.title("Curvas ROC")
+plt.xlabel("False Positive Rate")
+plt.ylabel("True Positive Rate")
+plt.legend(loc="lower right")
+plt.show()
+
+# Muestra de los resultados comparativos
+results_df = pd.DataFrame(results)
+print("\nResultados Comparativos de Modelos:")
+print(results_df.sort_values(by='ROC-AUC', ascending=False))
