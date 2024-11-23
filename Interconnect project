@@ -5,7 +5,7 @@ import pandas as pd
 import seaborn
 
 #leer los archivos CSV
-contract_df= pd.read_csv(r'C:\1_Principal\TRIPLETEN\CAP17\final_provider\contract.csv')
+contract_df= pd.read_csv(r'C:\1_Principal\TRIPLETEN\CAP17\final_provider\contract.csv') # TODO: NO ocupes rutas absolutas. Solo rutas relativas. Esta ruta funcionará en tu computador nada más. Cualquier persona que trate de usarlo se encontrará con errores.
 internet_df= pd.read_csv(r'C:\1_Principal\TRIPLETEN\CAP17\final_provider\internet.csv')
 personal_df= pd.read_csv(r'C:\1_Principal\TRIPLETEN\CAP17\final_provider\personal.csv')
 phone_df= pd.read_csv(r'C:\1_Principal\TRIPLETEN\CAP17\final_provider\phone.csv')
